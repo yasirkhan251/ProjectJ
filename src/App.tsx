@@ -2025,13 +2025,14 @@ export default function App() {
             {page === "register" && (
               <label>
                 Full name
-                <input type="text" placeholder="Your full name" required />
+                <input name="name" type="text" placeholder="Your full name" required />
               </label>
             )}
             {page === "register" && authRole === "seller" && (
               <label>
                 Shop name
                 <input
+                  name="shop_name"
                   type="text"
                   placeholder="What do you call your shop?"
                   required
@@ -2040,11 +2041,12 @@ export default function App() {
             )}
             <label>
               Email address
-              <input type="email" placeholder="you@example.com" required />
+              <input name="email" type="email" placeholder="you@example.com" required />
             </label>
             <label>
               Password
               <input
+                name="password"
                 type="password"
                 placeholder="At least 8 characters"
                 minLength={8}
