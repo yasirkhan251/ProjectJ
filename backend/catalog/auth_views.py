@@ -18,11 +18,11 @@ def user_data(user):
 class RegisterView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
-        name = request.data.get("name", "").strip()
-        email = request.data.get("email", "").strip().lower()
+        name = (request.data.get("name") or "").strip()
+        email = (request.data.get("email") or "").strip().lower()
         password = request.data.get("password", "")
         role = request.data.get("role", "buyer")
-        shop_name = request.data.get("shop_name", "").strip()
+        shop_name = (request.data.get("shop_name") or "").strip()
         if not name or not email or len(password) < 8:
             return Response({"detail": "Name, email and an 8+ character password are required."}, status=400)
         if User.objects.filter(username=email).exists():
