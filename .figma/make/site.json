@@ -1,0 +1,10 @@
+{
+  "description": "Connect with Indian artisans and artists to buy unique handmade products, showcase original designs, and collaborate in a vibrant creative community.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
