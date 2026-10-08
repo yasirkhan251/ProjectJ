@@ -278,9 +278,10 @@ export default function App() {
   const [authRole, setAuthRole] = useState<"buyer" | "seller">("buyer")
   const [galleryImage, setGalleryImage] = useState("")
   const [backendStatus, setBackendStatus] = useState<"checking" | "connected" | "offline">("checking")
+  const [user, setUser] = useState<{id:number; name:string; email:string; role:string} | null>(null)
+  const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
     Promise.all([
       fetch(`${apiUrl}/health/`).then((response) => {
         if (!response.ok) throw new Error("Backend unavailable")
@@ -292,6 +293,8 @@ export default function App() {
       }),
     ])
       .then(([, productData]) => {
+        const savedUser = localStorage.getItem("projectj_user")
+        if (savedUser) setUser(JSON.parse(savedUser))
         const apiProducts = Array.isArray(productData) ? productData : productData.results
         if (Array.isArray(apiProducts) && apiProducts.length) {
           setShopProducts(apiProducts.filter((product: Product) => product.seller === "Mitti & Form"))
@@ -322,9 +325,16 @@ export default function App() {
     setCategory(cat)
     navigate("marketplace")
   }
-  const addCart = (p: Product) => {
-    setCart((current) => [...current, p])
-    setToast(`${p.name} added to your bag`)
+  const addCart = async (p: Product) => {
+    const savedToken = localStorage.getItem("projectj_token")
+    if (!savedToken) { setToast("Please sign in before adding items to your bag."); navigate("login"); return }
+    try {
+      const response = await fetch(`${apiUrl}/cart/`, { method: "POST", headers: { Authorization: `Token ${savedToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ product_id: p.id, quantity: 1 }) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || "Unable to add item")
+      const mapped: Product[] = data.items.flatMap((item: any) => Array.from({ length: item.quantity }, () => products.find(x => x.id === item.id) || item))
+      setCart(mapped); setToast(`${p.name} added to your bag`)
+    } catch (error) { setToast(error instanceof Error ? error.message : "Could not add this item.") }
   }
   const search = (e: React.FormEvent) => {
     e.preventDefault()
@@ -460,11 +470,11 @@ export default function App() {
           <div className="header-actions">
             <button
               className="icon-action account-action"
-              onClick={() => navigate("login")}
+              onClick={() => navigate(user ? "dashboard" : "login")}
               aria-label="Login"
             >
               <Icon name="user" size={22} />
-              <span>Account</span>
+              <span>{user ? user.name : "Account"}</span>
             </button>
             <button
               className="icon-action cart-action"
@@ -1995,11 +2005,21 @@ export default function App() {
             </div>
           )}
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault()
-              setToast(
-                "This is a visual prototype. Account services are not connected yet.",
-              )
+              const form = new FormData(e.currentTarget)
+              const payload = { name: form.get("name"), email: form.get("email"), password: form.get("password"), role: authRole, shop_name: form.get("shop_name") }
+              const endpoint = page === "login" ? "auth/login/" : "auth/register/"
+              try {
+                const response = await fetch(`${apiUrl}/${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                const data = await response.json()
+                if (!response.ok) throw new Error(data.detail || "Authentication failed")
+                localStorage.setItem("projectj_token", data.token)
+                localStorage.setItem("projectj_user", JSON.stringify(data.user))
+                setUser(data.user)
+                setToast(page === "login" ? "Welcome back!" : "Account created successfully!")
+                navigate(data.user.role === "seller" ? "dashboard" : "home")
+              } catch (error) { setToast(error instanceof Error ? error.message : "Authentication failed") }
             }}
           >
             {page === "register" && (
